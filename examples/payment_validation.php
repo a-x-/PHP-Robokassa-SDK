@@ -1,35 +1,49 @@
 <?php
-
-/* ===================================
- * Author: Nazarkin Roman
- * -----------------------------------
- * Contacts:
- * email - roman@nazarkin.su
- * icq - 642971062
- * skype - roman444ik
- * -----------------------------------
- * GitHub:
- * https://github.com/NazarkinRoman
- * ===================================
+/**
+ * file Простой пример проверки оплаты.
+ * Указывается в ResultURL, SuccessURL и в FailURL с get-параметром 'target' равным 'result', 'success' или 'fail'.
  */
 
-/* простой пример проверки оплаты у себя на сервере */
-$kassa = new Robokassa('merchant_login', 'pass1', 'pass2');
+const IS_DEBUG_MODE = true;
 
-/* назначение параметров */
-$kassa->OutSum = $_POST['OutSum'];
-$kassa->InvId  = $_POST['InvId'];
+//
+// Получение результата транзакции
+// и выполнение приложением (магазином) сценариев завершения.
+//
+// Робокасса имеет странную модель подтверждения транзакции:
+//
+//
+try {
+    $requestParameters = (new Robokassa('merchant_login', 'pass1', 'pass2', IS_DEBUG_MODE))->getPaymentResult();
+    if ($_REQUEST['target'] === 'result') {
+        //
+        // Process success payment with $requestParameters parameters.
+        // $requestParameters =
+        //   [OutSum=>'...', 'InvId'=>'...', 'SignatureValue'=>'...','CustomValues' => [...]]
+        //
+        // Save InvId in the DB
+        //
+        //
+    } elseif ($_REQUEST['target'] === 'success') {
+        //
+        // Show result message for user
+        // $requestParameters =
+        //   [OutSum=>'...', 'InvId'=>'...', 'SignatureValue'=>'...','CustomValues' => [...]]
+        //
+        // Check InvId in the DB
+        // If exest then echo 'Payment is success!';
+        // else echo 'Payment is fail!';
+        //
+    } elseif ($_REQUEST['target'] === 'fail') {
+        //
+        // Show result message for user
+        // $requestParameters =
+        //   [OutSum=>'...', 'InvId'=>'...', 'CustomValues' => [...]]
+        //
+        die('Payment is reject!');
+    }
 
-/* добавление кастомных полей из запроса */
-$kassa->addCustomValues(array(
-        'shp_user'     => $_POST['shp_user'],
-        'shp_someData' => $_POST['shp_someData']
-    ));
-
-/* проверка цифровой подписи запроса */
-if ($kassa->checkHash($_POST['SignatureValue'])) {
-    echo 'Оплата проведена успешно!';
-} else {
-
-    echo 'Валидация не пройдена';
+}
+ catch (\Exception $e) {
+    die('Payment is fail!');
 }

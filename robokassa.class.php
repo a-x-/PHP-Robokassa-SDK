@@ -1,122 +1,178 @@
 <?php
-
+/**
+ * Documentation:
+ * http://robokassa.ru/ru/Doc/Ru/Interface.aspx -- «ROBOKASSA. Описание интерфейсов»
+ * http://robokassa.ru/ru/DocTest/Ru/Interface.aspx -- «ROBOKASSA. Использование тестового сервера»
+ */
 class Robokassa {
-    //
-    //request parameters
-    public $OutSum
-    public $Email = false
-    public $InvId = 0
-    public $Desc
-    public $IncCurrLabel = ''
-    public $Culture      = 'ru';
+    private requestParameters = [
+        //
+        // float - требуемая к получению сумма (обязательный параметр).
+        // Формат представления числа - разделитель точка.
+        // Сумма должна быть указана в той валюте, которая была указана при регистрации магазина,
+        // как валюта текущего баланса Продавца или как электронная валюта, в которой будет получать средства Продавец.
+        'OutSum' => 0,
+        //
+        // string - Email пользователя. Пользователь может изменить его в процессе оплаты.
+        'Email' => false,
+        //
+        // integer - Идентификатор транзакции в приложении (в магазине). Должен быть уникальным для магазина.
+        // Может принимать значения от 1 до 2147483647 (2^31-1).
+        // Если содержит пустое значение, вовсе не указан, либо равен "0", то при создании операции ей будет автоматически присвоен уникальный номер счета.
+        // Рекомендуется использовать данную возможность только в очень простых магазинах, где не требуется какого-либо контроля.
+        'InvId' => 0,
+        //
+        // string - Описание покупки.
+        // можно использовать только символы английского или русского алфавита, цифры и знаки препинания.
+        // Максимальная длина 100 символов.
+        'InvDesc' => '',
+        //
+        // string - Предлагаемая валюта платежа.
+        // Пользователь может изменить ее в процессе оплаты.
+        // Доступные значения для параметра IncCurrLabel - метки валют.
+        // Cпособ получения этой информации описан в разделе: XML интерфейсы. Интерфейс получения списка валют.
+        // Однако он доступен только активным мерчантам (продавцам).
+        'IncCurrLabel' => '',
+        //
+        // string - [опционально] Язык общения с клиентом. Значения: en, ru.
+        // Если не установлен - берется язык региональных установок браузера.
+        'Culture' => '',
+        //
+        // string - кодировка, в которой возвращается HTML-код кассы. По умолчанию: windows-1251.
+        'Encoding' => 'utf-8',
+        //
+        // string[] - Коллекция дополнительных параметров приложения (магазина),
+        // необрабатываемых сервисов ROBOKASSA, но пересылаемых на этап верификации платежа.
+        'CustomValues' => [
+        ]
+    ];
 
     //
     // Consts
-    const ENDPOINT_PRODUCTION = 'https://merchant.roboxchange.com/Index.aspx';
+    const ENDPOINT_PRODUCTION = 'https://auth.robokassa.ru/Merchant/Index.aspx';
     const ENDPOINT_SANBOX     = 'http://test.robokassa.ru/Index.aspx';
 
-    private $login;
-    private $password1;
-    private $password2;
-    private $endpoint   = '';
-    private $customVars = [];
+    private $login;// логин мерчанта (продавца)
+    private $password1;// пароль №1 - sMerchantPass1, используется интерфейсом инициализации оплаты
+    private $password2;// пароль №2 - sMerchantPass2, для получения информации о состояниях платежей, для XML-интерфейсов
+    private $endpoint = '';
 
     /**
-	 * Вносит в класс данные для генерации защищенной подписи
-	 *
-	 * @param string $login логин мерчанта
-	 * @param string $pass1 пароль №1
-	 * @param string $pass2 пароль №2
-	 * @param boolean $test работа с тестовым сервером
+	 * @param string $login
+	 * @param string $pass1
+	 * @param string $pass2
+	 * @param boolean $isTest работа с тестовым сервером
 	 *
 	 * @return none
 	 */
-    public function __construct($login, $pass1, $pass2, $test = false) {
+    public function __construct($login, $pass1, $pass2, $isTest = false) {
         $this->login     = $login;
         $this->password1 = $pass1;
         $this->password2 = $pass2;
 
-        $this->endpoint = $test?$this::ENDPOINT_SANBOX:$this::ENDPOINT_PRODUCTION;
+        $this->endpoint = $isTest?$this::ENDPOINT_SANBOX:$this::ENDPOINT_PRODUCTION;
     }
 
     /**
-	 * Добавление пользовательских значений в запрос
-	 *
-	 * @param array $vars именованный массив с переменными(названия указывать с суффиксом shp_)
-	 * @return none
+	 * Request and process ROBOKASSA payment transaction
 	 */
-    public function addCustomValues($vars) {
-        if (!is_array($vars)) {
-            throw new Exception('Function `addCustomValues` take only array\'s');
-        }
-
-        foreach ($vars as $k => $v) {
-            $this->customVars['shp_'.$k] = $v;
-        }
-
+    public function processPayment($requestParametersCollection) {
+        $this->setRequestParameters($requestParametersCollection);
+        //
+        // Редирект на сайт РОБОКАССЫ с передачей параметров транзакции
+        header('Location: '.$kassa->getRedirectURL());
     }
 
     /**
-	 * Получение URL для запроса
-	 *
-	 * @return string $url
+	 * Check transaction result
+	 * @return boolean - is transaction success
 	 */
-    public function getRedirectURL() {
-        $customVars = $this->getCustomValues();
-        $hash       = md5("{$this->login}:{$this->OutSum}:{$this->InvId}:{$this->password1}{$customVars}");
-        $httpQuery  = [
-            'MrchLogin'      => $this->login,
-            'OutSum'         => (float) $this->OutSum,
-            'Desc'           => urlencode($this->Desc),
-            'SignatureValue' => $hash,
-            'Culture'        => $this->Culture
-        ];
-        if ($this->InvId !== '') {$httpQuery['InvId']               = $this->InvId;}
-        if ($this->IncCurrLabel !== '') {$httpQuery['IncCurrLabel'] = $this->IncCurrLabel;}
-        if ($this->Email !== '') {$httpQuery['Email']               = $this->Email;}
-
-        return $this->endpoint.'?'.http_build_query($httpQuery).$this->getCustomValues($url = true);
+    public function getPaymentResult() {
+        $this->convertPaymentResultParameters();
+        if ($this->checkHash($this->requestParameters['SignatureValue'])) {
+            return $this->requestParameters;
+        } else {
+            throw new \Exception("Error Processing Request", 1);
+        }
     }
 
     /**
-	 * Проверка исполнения операции. Сравнение хеша
+	 *
+	 */
+    private function convertPaymentResultParameters() {
+        foreach ($_POST as $key => $value) {
+            if (preg_match('!^SHP!i', $key)) {
+                $this->requestParameters['CustomValues'][preg_replace('!^SHP', '', $key)] = $value;
+            } else {
+                $this->requestParameters[$key] = $value;
+            }
+        }
+    }
+
+    /**
+	 * Проверить исполнение операции. Сравнить контрольные суммы
 	 *
 	 * @param string $hash значение SignatureValue, переданное кассой на Result URL
-	 * @param boolean $checkSuccess проверка параметров в скрипте завершения операции (SuccessURL)
+	 *               md5-хеш строки вида «sMerchantLogin:nOutSum:nInvId:sMerchantPass1»
 	 * @return boolean $hashValid
 	 */
-    function checkHash($hash, $checkSuccess = false) {
-        $customVars    = $this->getCustomValues();
-        $password      = $checkSuccess?$this->password1:$this->password2;
-        $hashGenerated = md5("{$this->OutSum}:{$this->InvId}:{$password}{$customVars}");
+    private function checkHash($hash) {
+        $customVars    = $this->getSerialezedCustomValues();
+        $hashGenerated = md5("{$this->requestParameters['OutSum']}:{$this->requestParameters['InvId']}:{$this->password2}:{$customVars}");
 
         return (strtolower($hash) == $hashGenerated);
     }
 
     /**
-	 * Получение строки с пользовательскими данными для шифрования
 	 *
-	 * @param boolean $isUrl генерация строки для использования в URL true/false
-	 * @return string
 	 */
-    function getCustomValues($isUrl = false) {
-        $out        = '';
-        $customVars = [];
-        if (!empty($this->customVars)) {
-            foreach ($this->customVars as $k => $v)
-            $customVars[$k] = $k.'='.$v;
-
-            sort($customVars);
-
-            if ($isUrl === true) {
-                $out = '&'.join('&', $customVars);
-            } else {
-
-                $out = ':'.join(':', $customVars);
-            }
-        }
-
-        return $out;
+    private function setRequestParameters($requestParametersCollection) {
+        $this->requestParameters = $requestParametersCollection;
     }
 
+    /**
+	 * Вернуть коллекцию дополнительных параметров приложения (магазина) в специфичной для РОБОКАССЫ форме.
+	 */
+    private function getRkSpecificCustomValues() {
+        $customVars = [];
+        foreach ($this->requestParameters['CustomValues'] as $k => $v) {
+            $customVars['SHP'.$k] = $v;
+        }
+        return $customVars;
+    }
+
+    /**
+	 * Вернуть сериализованную строку с пользовательскими данными
+	 *
+	 * @return string
+	 */
+    private function getSerialezedCustomValues() {
+        return join(':',
+            sort(array_map(
+                    function ($key, $val) {return "$key=$val";},
+                    $this->getRkSpecificCustomValues()
+                ))
+        );
+    }
+
+    /**
+	 * Вернуть URL для запроса транзакции
+	 *
+	 * @return string $url
+	 */
+    private function getRedirectURL() {
+        $customVars = $this->getSerialezedCustomValues();
+        $hash       = md5("{$this->login}:{$this->requestParameters['OutSum']}:{$this->requestParameters['InvId']}:{$this->password1}:{$customVars}");
+        $httpQuery  = array_merge(
+            $this->requestParameters,
+            $this->getRkSpecificCustomValues(),
+            [
+                'MrchLogin'      => $this->login,
+                'OutSum'         => (float) $this->requestParameters['OutSum'],
+                'InvDesc'        => urlencode($this->requestParameters['InvDesc']),
+                'SignatureValue' => $hash,
+            ]
+        );
+        return $this->endpoint.'?'.http_build_query($httpQuery);
+    }
 }
