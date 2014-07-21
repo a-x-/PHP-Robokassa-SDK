@@ -58,13 +58,13 @@ class Robokassa {
     private $endpoint = '';
 
     /**
-	 * @param string $login
-	 * @param string $pass1
-	 * @param string $pass2
-	 * @param boolean $isTest работа с тестовым сервером
-	 *
-	 * @return none
-	 */
+     * @param string $login
+     * @param string $pass1
+     * @param string $pass2
+     * @param boolean $isTest работа с тестовым сервером
+     *
+     * @return none
+     */
     public function __construct($login, $pass1, $pass2, $isTest = false) {
         $this->login     = $login;
         $this->password1 = $pass1;
@@ -74,8 +74,8 @@ class Robokassa {
     }
 
     /**
-	 * Request and process ROBOKASSA payment transaction
-	 */
+     * Request and process ROBOKASSA payment transaction
+     */
     public function processPayment($requestParametersCollection) {
         $this->setRequestParameters($requestParametersCollection);
         //
@@ -84,9 +84,9 @@ class Robokassa {
     }
 
     /**
-	 * Check transaction result
-	 * @return boolean - is transaction success
-	 */
+     * Check transaction result
+     * @return boolean - is transaction success
+     */
     public function getPaymentResult() {
         $this->convertPaymentResultParameters();
         if ($this->checkHash($this->requestParameters['SignatureValue'])) {
@@ -97,8 +97,8 @@ class Robokassa {
     }
 
     /**
-	 *
-	 */
+     *
+     */
     private function convertPaymentResultParameters() {
         foreach ($_POST as $key => $value) {
             if (preg_match('!^SHP!i', $key)) {
@@ -110,12 +110,12 @@ class Robokassa {
     }
 
     /**
-	 * Проверить исполнение операции. Сравнить контрольные суммы
-	 *
-	 * @param string $hash значение SignatureValue, переданное кассой на Result URL
-	 *               md5-хеш строки вида «sMerchantLogin:nOutSum:nInvId:sMerchantPass1»
-	 * @return boolean $hashValid
-	 */
+     * Проверить исполнение операции. Сравнить контрольные суммы
+     *
+     * @param string $hash значение SignatureValue, переданное кассой на Result URL
+     *               md5-хеш строки вида «sMerchantLogin:nOutSum:nInvId:sMerchantPass1»
+     * @return boolean $hashValid
+     */
     private function checkHash($hash) {
         $customVars    = $this->getSerialezedCustomValues();
         $hashGenerated = md5("{$this->requestParameters['OutSum']}:{$this->requestParameters['InvId']}:{$this->password2}:{$customVars}");
@@ -124,15 +124,15 @@ class Robokassa {
     }
 
     /**
-	 *
-	 */
+     *
+     */
     private function setRequestParameters($requestParametersCollection) {
         $this->requestParameters = $requestParametersCollection;
     }
 
     /**
-	 * Вернуть коллекцию дополнительных параметров приложения (магазина) в специфичной для РОБОКАССЫ форме.
-	 */
+     * Вернуть коллекцию дополнительных параметров приложения (магазина) в специфичной для РОБОКАССЫ форме.
+     */
     private function getRkSpecificCustomValues() {
         $customVars = [];
         foreach ($this->requestParameters['CustomValues'] as $k => $v) {
@@ -142,10 +142,10 @@ class Robokassa {
     }
 
     /**
-	 * Вернуть сериализованную строку с пользовательскими данными
-	 *
-	 * @return string
-	 */
+     * Вернуть сериализованную строку с пользовательскими данными
+     *
+     * @return string
+     */
     private function getSerialezedCustomValues() {
         return join(':',
             sort(array_map(
@@ -156,10 +156,10 @@ class Robokassa {
     }
 
     /**
-	 * Вернуть URL для запроса транзакции
-	 *
-	 * @return string $url
-	 */
+     * Вернуть URL для запроса транзакции
+     *
+     * @return string $url
+     */
     private function getRedirectURL() {
         $customVars = $this->getSerialezedCustomValues();
         $hash       = md5("{$this->login}:{$this->requestParameters['OutSum']}:{$this->requestParameters['InvId']}:{$this->password1}:{$customVars}");
