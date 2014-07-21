@@ -70,3 +70,13 @@ public function getPaymentResult()
     ]
 ];
 ```
+
+# License
+
+I'm not sure, that this SDK are interesting for you, but this are open and licensed under the MIT.
+
+# Contribute
+
+You're welcome!
+
+English typos corrections are welcome too.
