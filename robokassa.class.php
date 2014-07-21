@@ -1,25 +1,25 @@
 <?php
 
-/* ===================================
- * Author: Nazarkin Roman
- * -----------------------------------
- * Contacts:
- * email - roman@nazarkin.su
- * icq - 642971062
- * skype - roman444ik
- * -----------------------------------
- * GitHub:
- * https://github.com/NazarkinRoman
- * ===================================
- */
-
 class Robokassa {
+    //
+    //request parameters
+    public $OutSum
+    public $Email = false
+    public $InvId = 0
+    public $Desc
+    public $IncCurrLabel = ''
+    public $Culture      = 'ru';
 
-    private $login, $password1, $password2,
-    $endpoint   = 'https://merchant.roboxchange.com/Index.aspx?',
-    $customVars = array();
+    //
+    // Consts
+    const ENDPOINT_PRODUCTION = 'https://merchant.roboxchange.com/Index.aspx';
+    const ENDPOINT_SANBOX     = 'http://test.robokassa.ru/Index.aspx';
 
-    public $OutSum, $Email = false, $InvId = 0, $Desc, $IncCurrLabel = '', $Culture = 'ru';/* request parameters */
+    private $login;
+    private $password1;
+    private $password2;
+    private $endpoint   = '';
+    private $customVars = [];
 
     /**
 	 * Вносит в класс данные для генерации защищенной подписи
@@ -36,9 +36,7 @@ class Robokassa {
         $this->password1 = $pass1;
         $this->password2 = $pass2;
 
-        if ($test) {
-            $this->endpoint = 'http://test.robokassa.ru/Index.aspx?';
-        }
+        $this->endpoint = $test?$this::ENDPOINT_SANBOX:$this::ENDPOINT_PRODUCTION;
     }
 
     /**
@@ -48,11 +46,13 @@ class Robokassa {
 	 * @return none
 	 */
     public function addCustomValues($vars) {
-        if (!is_array($vars)) {throw new Exception('Function `addCustomValues` take only array`s');
+        if (!is_array($vars)) {
+            throw new Exception('Function `addCustomValues` take only array\'s');
         }
 
-        foreach ($vars as $k => $v)
-        $this->customVars[$k] = $v;
+        foreach ($vars as $k => $v) {
+            $this->customVars['shp_'.$k] = $v;
+        }
 
     }
 
@@ -62,21 +62,20 @@ class Robokassa {
 	 * @return string $url
 	 */
     public function getRedirectURL() {
-        $customVars   = $this->getCustomValues();
-        $hash         = md5("{$this->login}:{$this->OutSum}:{$this->InvId}:{$this->password1}{$customVars}");
-        $invId        = ($this->InvId !== '')?'&InvId='.$this->InvId:'';
-        $IncCurrLabel = ($this->IncCurrLabel !== '')?'&IncCurrLabel='.$this->IncCurrLabel:'';
-        $Email        = ($this->Email !== '')?'&Email='.$this->Email:'';
+        $customVars = $this->getCustomValues();
+        $hash       = md5("{$this->login}:{$this->OutSum}:{$this->InvId}:{$this->password1}{$customVars}");
+        $httpQuery  = [
+            'MrchLogin'      => $this->login,
+            'OutSum'         => (float) $this->OutSum,
+            'Desc'           => urlencode($this->Desc),
+            'SignatureValue' => $hash,
+            'Culture'        => $this->Culture
+        ];
+        if ($this->InvId !== '') {$httpQuery['InvId']               = $this->InvId;}
+        if ($this->IncCurrLabel !== '') {$httpQuery['IncCurrLabel'] = $this->IncCurrLabel;}
+        if ($this->Email !== '') {$httpQuery['Email']               = $this->Email;}
 
-        return $this->endpoint.'MrchLogin='.$this->login
-        .'&OutSum='.(float) $this->OutSum
-        .$invId
-        .'&Desc='.urlencode($this->Desc)
-        .'&SignatureValue='.$hash
-        .$IncCurrLabel
-        .$Email
-        .'&Culture='.$this->Culture
-        .$this->getCustomValues($url = true);
+        return $this->endpoint.'?'.http_build_query($httpQuery).$this->getCustomValues($url = true);
     }
 
     /**
@@ -95,31 +94,21 @@ class Robokassa {
     }
 
     /**
-	 * Проверка завершения операции (проверка оплаты). Сравнение хеша
-	 *
-	 * @param string $hash значение SignatureValue, переданное кассой на Result URL
-	 * @return boolean $hashValid
-	 */
-    function checkSuccess($hash) {
-        return $this->checkHash($hash, true);
-    }
-
-    /**
 	 * Получение строки с пользовательскими данными для шифрования
 	 *
-	 * @param boolean $url генерация строки для использования в URL true/false
+	 * @param boolean $isUrl генерация строки для использования в URL true/false
 	 * @return string
 	 */
-    function getCustomValues($url = false) {
+    function getCustomValues($isUrl = false) {
         $out        = '';
-        $customVars = array();
+        $customVars = [];
         if (!empty($this->customVars)) {
             foreach ($this->customVars as $k => $v)
             $customVars[$k] = $k.'='.$v;
 
             sort($customVars);
 
-            if ($url === true) {
+            if ($isUrl === true) {
                 $out = '&'.join('&', $customVars);
             } else {
 

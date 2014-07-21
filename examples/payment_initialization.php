@@ -21,10 +21,10 @@ $kassa->OutSum       = 500;
 $kassa->IncCurrLabel = 'WMRM';
 $kassa->Desc         = 'Тестовая оплата';
 
-$kassa->addCustomValues(array(
-        'shp_user'     => $userId, // все ключи массива должны быть с префиксом shp_
-        'shp_someData' => 'someValue'
-    ));
+$kassa->addCustomValues([
+        'user'     => $userId, // все ключи массива должны быть с префиксом shp_
+        'someData' => 'someValue'
+    ]);
 
 /* редирект на сайт робокассы */
 header('Location: '.$kassa->getRedirectURL());
