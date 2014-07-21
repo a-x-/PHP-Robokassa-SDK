@@ -1,14 +1,14 @@
-Данный класс не охватывает весь спектр возможностей API «Робокассы», однако он упрощает такие базовые задачи работы с ним, как:
-* инициализация оплаты
-* проверка оплаты
+This SDK is not implement full set of «ROBOKASSA» API methods, but make basic operations simpliest:
+* Request and process (init) payment.
+* Get payment result.
 
 # Public interface
-Примеры применения класса можно посмотреть в папке `examples`, весь код прокомментирован.
-
+Check using examples in the examples/ directory. 
+Code has comments.
 
 ```php
 /**
- * Request and process ROBOKASSA payment transaction
+ * Request and process «ROBOKASSA» payment transaction
  */
 public function processPayment($requestParametersCollection)
 ```
