@@ -2,19 +2,9 @@
 * инициализация оплаты
 * проверка оплаты
 
-# Использование
+# Public interface
 Примеры применения класса можно посмотреть в папке `examples`, весь код прокомментирован.
 
-## Параметры класса
-* `OutSum` - Сумма для оплаты в условных единицах(по умолчанию - рубли)
-* `IncCurrLabel` - Валюта для проведения платежа(по умолчанию - рубли)
-* `InvId` - Номер заказа. Используется для идентификации транзакции на вашем сервере. Если не указать - будет сгенерирован на сервере «Робокассы» автоматически.
-* `InvDesc` - Описание платежа
-* `Email` - Email пользователя. Может быть изменен в процессе оплаты.
-* `Culture` - Язык интерфейса формы оплаты. По умолчанию - `ru`
-
-
-## Public interface
 
 ```php
 /**
@@ -22,6 +12,16 @@
  */
 public function processPayment($requestParametersCollection)
 ```
+
+
+```php
+/**
+ * Check transaction result
+ * @return boolean - is transaction success
+ */
+public function getPaymentResult()
+```
+
 
 `$requestParametersCollection` Structure:
 
@@ -69,12 +69,4 @@ public function processPayment($requestParametersCollection)
     'CustomValues' => [
     ]
 ];
-```
-
-```php
-/**
- * Check transaction result
- * @return boolean - is transaction success
- */
-public function getPaymentResult()
 ```
