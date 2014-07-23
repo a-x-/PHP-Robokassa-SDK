@@ -83,7 +83,7 @@ class Robokassa
         $this->setRequestParameters($requestParametersCollection);
         //
         // Редирект на сайт РОБОКАССЫ с передачей параметров транзакции
-        header('Location: ' . $kassa->getRedirectURL());
+        header('Location: ' . $this->getRedirectURL());
     }
 
     /**
@@ -91,7 +91,7 @@ class Robokassa
      */
     private function setRequestParameters($requestParametersCollection)
     {
-        $this->requestParameters = $requestParametersCollection;
+        $this->requestParameters = array_merge($this->requestParameters, $requestParametersCollection);
     }
 
     /**
@@ -146,8 +146,8 @@ class Robokassa
     private function getSerialezedCustomValues()
     {
         return join(':',
-            sort(array_map(
-                function ($key, $val) { return "$key=$val"; },
+            \Invntrm\true_sort(\Invntrm\true_array_map(
+                function ($val, $key) { return "$key=$val"; },
                 $this->getRkSpecificCustomValues()
             ))
         );
@@ -172,18 +172,19 @@ class Robokassa
      */
     private function getRedirectURL()
     {
+        $this->requestParameters['OutSum'] = (float)$this->requestParameters['OutSum'];
         $customVars = $this->getSerialezedCustomValues();
         $hash       = md5("{$this->login}:{$this->requestParameters['OutSum']}:{$this->requestParameters['InvId']}:{$this->password1}:{$customVars}");
         $httpQuery  = array_merge(
-            $this->requestParameters,
-            $this->getRkSpecificCustomValues(),
             [
                 'MrchLogin'      => $this->login,
-                'OutSum'         => (float)$this->requestParameters['OutSum'],
-                'InvDesc'        => urlencode($this->requestParameters['InvDesc']),
                 'SignatureValue' => $hash,
-            ]
+            ],
+            $this->requestParameters,
+            $this->getRkSpecificCustomValues()
+            
         );
+        unset($httpQuery['CustomValues']);
         return $this->endpoint . '?' . http_build_query($httpQuery);
     }
 }
