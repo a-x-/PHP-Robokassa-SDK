@@ -1,5 +1,5 @@
 <?php
-
+namespace Robokassa;
 /**
  * Documentation:
  * http://robokassa.ru/ru/Doc/Ru/Interface.aspx -- «ROBOKASSA. Описание интерфейсов»
@@ -104,7 +104,7 @@ class Robokassa
         if ($this->checkHash($this->requestParameters['SignatureValue'])) {
             return $this->requestParameters;
         } else {
-            throw new \Exception("Error Processing Request", 1);
+            throw new ExceptionExtended("Transaction is invalid");
         }
     }
 
@@ -113,13 +113,22 @@ class Robokassa
      */
     private function convertPaymentResultParameters()
     {
+        $this->requestParameters = $this::convertPaymentResultParametersStatic($this->requestParameters);
+    }
+
+    /**
+     *
+     */
+    public static function convertPaymentResultParametersStatic($requestParameters)
+    {
         foreach ($_POST as $key => $value) {
             if (preg_match('!^SHP!i', $key)) {
-                $this->requestParameters['CustomValues'][preg_replace('!^SHP', '', $key)] = $value;
+                $requestParameters['CustomValues'][preg_replace('!^SHP!i', '', $key)] = $value;
             } else {
-                $this->requestParameters[$key] = $value;
+                $requestParameters[$key] = $value;
             }
         }
+        return $requestParameters;
     }
 
     /**
@@ -135,6 +144,12 @@ class Robokassa
         $customVars    = $this->getSerialezedCustomValues();
         $hashGenerated = md5("{$this->requestParameters['OutSum']}:{$this->requestParameters['InvId']}:{$this->password2}:{$customVars}");
 
+        \Invntrm\_d([
+            'checkHash',
+            "{$this->requestParameters['OutSum']}:{$this->requestParameters['InvId']}:{$this->password2}:{$customVars}",
+            $hashGenerated,
+            strtolower($hash)
+        ]);
         return (strtolower($hash) == $hashGenerated);
     }
 
@@ -160,7 +175,7 @@ class Robokassa
     {
         $customVars = [];
         foreach ($this->requestParameters['CustomValues'] as $k => $v) {
-            $customVars['SHP' . $k] = $v;
+            $customVars['SHP' . $k] = html_entity_decode($v);
         }
         return $customVars;
     }
@@ -188,3 +203,53 @@ class Robokassa
         return $this->endpoint . '?' . http_build_query($httpQuery);
     }
 }
+
+    class ExceptionExtended extends \Exception {
+        protected $codeExtended;
+
+        /**
+         * @return string
+         */
+        public function getCodeExtended()
+        {
+            return $this->codeExtended;
+        }
+
+        /**
+         * @param string     $codeExtended
+         * @param string     $description
+         * @param \Exception $previous    [optional]
+         * @param \Exception $numericCode [optional]
+         */
+        public function __construct($codeExtended, $description=null, $previous=null, $numericCode=null)
+        {
+            if(!$description) $description = 'нет описания';
+            parent::__construct($description, $numericCode, $previous);
+            $this->codeExtended = \Invntrm\makeErrorCode($codeExtended);
+        }
+    }
+
+    /**
+     * Class ExceptionUser User not correct action exception
+     * @package YandexMoney
+     */
+    class ExceptionUser extends ExceptionExtended {
+
+    }
+
+    /**
+     * Class ExceptionYandexmoney Yandex Money specified exception
+     * @package YandexMoney
+     */
+    class ExceptionRobokassa extends ExceptionExtended {
+
+    }
+
+    /**
+     * Class ExceptionApp Application bug exception
+     * @package YandexMoney
+     */
+    class ExceptionApp extends ExceptionExtended {
+
+    }
+
