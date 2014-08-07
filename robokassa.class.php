@@ -83,7 +83,7 @@ class Robokassa
         $this->setRequestParameters($requestParametersCollection);
         //
         // Редирект на сайт РОБОКАССЫ с передачей параметров транзакции
-        header('Location: ' . $this->getRedirectURL());
+        return $this->getRedirectURL();
     }
 
     /**
@@ -197,7 +197,7 @@ class Robokassa
             ],
             $this->requestParameters,
             $this->getRkSpecificCustomValues()
-            
+
         );
         unset($httpQuery['CustomValues']);
         return $this->endpoint . '?' . http_build_query($httpQuery);
