@@ -252,4 +252,3 @@ class Robokassa
     class ExceptionApp extends ExceptionExtended {
 
     }
-
