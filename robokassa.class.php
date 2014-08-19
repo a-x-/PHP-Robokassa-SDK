@@ -91,7 +91,13 @@ class Robokassa
      */
     private function setRequestParameters($requestParametersCollection)
     {
-        $this->requestParameters = array_merge($this->requestParameters, $requestParametersCollection);
+        $this->requestParameters            = array_merge($this->requestParameters, $requestParametersCollection);
+        $this->requestParameters['InvDesc'] = substr(
+            preg_replace('/[^a-z0-9,.!]i/', '-',
+                \Invntrm\transliterateCyr(
+                    $this->requestParameters['InvDesc']
+                )
+            ), 0, 100);
     }
 
     /**
