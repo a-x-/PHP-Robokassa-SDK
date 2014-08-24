@@ -119,22 +119,33 @@ class Robokassa
      */
     private function convertPaymentResultParameters()
     {
-        $this->requestParameters = $this::convertPaymentResultParametersStatic($this->requestParameters);
+        $this->requestParameters = array_merge_recursive(
+            $this->requestParameters,
+            $this::convertPaymentResultParametersStatic($_POST)
+        );
     }
 
     /**
      *
      */
-    public static function convertPaymentResultParametersStatic($requestParameters)
+    public static function convertPaymentResultParametersStatic(&$inputRequestParameters, $isClean = false)
     {
-        foreach ($_POST as $key => $value) {
+        $outRequestParameters = [];
+        foreach ($inputRequestParameters as $key => $value) {
             if (preg_match('!^SHP!i', $key)) {
-                $requestParameters['CustomValues'][preg_replace('!^SHP!i', '', $key)] = $value;
+                $cleanKey = preg_replace('!^SHP!i', '', $key);
+                if ($isClean) {
+                    $outRequestParameters[$cleanKey] = $value;
+                    unset($inputRequestParameters[$key]);
+                }
+                else {
+                    $outRequestParameters['CustomValues'][$cleanKey] = $value;
+                }
             } else {
-                $requestParameters[$key] = $value;
+                $outRequestParameters[$key] = $value;
             }
         }
-        return $requestParameters;
+        return $outRequestParameters;
     }
 
     /**
