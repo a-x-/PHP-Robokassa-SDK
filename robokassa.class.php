@@ -119,7 +119,7 @@ class Robokassa
      */
     private function convertPaymentResultParameters()
     {
-        $this->requestParameters = array_merge_recursive(
+        $this->requestParameters = array_merge(
             $this->requestParameters,
             $this::convertPaymentResultParametersStatic($_POST)
         );
