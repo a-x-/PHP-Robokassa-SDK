@@ -1,6 +1,10 @@
 This SDK is not implement full set of «ROBOKASSA» API methods, but make basic operations simpliest:
 * Request and process (init) payment.
 * Get payment result.
+ 
+**Status**: *Alpha*. But, i use it in my own projects. So, lib, probably, has unexpected my own narrow dependencies.
+If you want use it, then call me.
+
 
 # Public interface
 Check using examples in the examples/ directory. 
