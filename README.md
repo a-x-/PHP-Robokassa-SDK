@@ -1,3 +1,6 @@
+// Excuse my beginner's English
+
+
 This SDK is not implement full set of «ROBOKASSA» API methods, but make basic operations simpliest:
 * Request and process (init) payment.
 * Get payment result.
